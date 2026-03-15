@@ -586,6 +586,12 @@ function seedUnlockedBadges() {
   );
 }
 
+function preventZoomGestures() {
+  ["gesturestart", "gesturechange", "gestureend"].forEach((eventName) => {
+    document.addEventListener(eventName, (event) => event.preventDefault(), { passive: false });
+  });
+}
+
 function formatDate() {
   const formatter = new Intl.DateTimeFormat("de-DE", {
     day: "2-digit",
@@ -1159,6 +1165,7 @@ function init() {
   updateSelectionPreview();
   updateSoundButtons();
   seedUnlockedBadges();
+  preventZoomGestures();
   updateDashboard();
   setSecretPanel(false);
   setMode("cards");
