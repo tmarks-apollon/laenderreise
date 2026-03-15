@@ -220,6 +220,7 @@ const BADGES = [
 
 let audioContext = null;
 let swRegistration = null;
+const APP_VERSION = "2026-03-15-5";
 
 const appState = {
   screen: "menu",
@@ -1039,24 +1040,48 @@ function promptForUpdate(registration) {
   setUpdateBanner(true);
 }
 
-function watchInstallingWorker(worker, registration) {
-  worker.addEventListener("statechange", () => {
-    if (worker.state === "installed" && navigator.serviceWorker.controller) {
-      promptForUpdate(registration);
-    }
-  });
+async function clearAppCaches() {
+  if (!("caches" in window)) return;
+  const keys = await caches.keys();
+  await Promise.all(keys.filter((key) => key.startsWith("laenderreise-")).map((key) => caches.delete(key)));
 }
 
-function activateUpdate() {
-  if (!swRegistration || !swRegistration.waiting) {
-    setUpdateBanner(false);
-    return;
+async function checkForAppUpdate() {
+  try {
+    const response = await fetch(`./version.json?ts=${Date.now()}`, { cache: "no-store" });
+    if (!response.ok) {
+      setUpdateBanner(false);
+      return;
+    }
+    const data = await response.json();
+    if (data.version && data.version !== APP_VERSION) {
+      promptForUpdate(swRegistration);
+      return;
+    }
+  } catch {
+    // Wenn der Versionscheck fehlschlaegt, bleibt die App normal nutzbar.
   }
   setUpdateBanner(false);
-  swRegistration.waiting.postMessage({ type: "SKIP_WAITING" });
+}
+
+async function activateUpdate() {
+  setUpdateBanner(false);
+
+  try {
+    if (swRegistration) {
+      await swRegistration.update();
+      if (swRegistration.waiting) {
+        swRegistration.waiting.postMessage({ type: "SKIP_WAITING" });
+      }
+    }
+    await clearAppCaches();
+  } catch {
+    // Wenn das Aktualisieren nicht vollstaendig klappt, versuchen wir trotzdem neu zu laden.
+  }
+
   window.setTimeout(() => {
     window.location.reload();
-  }, 1200);
+  }, 600);
 }
 
 function clearMapState() {
@@ -1217,16 +1242,10 @@ if ("serviceWorker" in navigator) {
       .register("./sw.js")
       .then((registration) => {
         swRegistration = registration;
-
-        registration.addEventListener("updatefound", () => {
-          if (registration.installing) {
-            watchInstallingWorker(registration.installing, registration);
-          }
-        });
-
         registration.update().catch(() => {
-          // Wenn das Update-Pruefen fehlschlaegt, bleibt die App normal nutzbar.
+          // Wenn das Service-Worker-Update-Pruefen fehlschlaegt, bleibt die App normal nutzbar.
         });
+        checkForAppUpdate();
       })
       .catch(() => {
         // Die App funktioniert auch ohne Service Worker weiter.

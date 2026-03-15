@@ -1,9 +1,10 @@
-const CACHE_NAME = "laenderreise-v2";
+const CACHE_NAME = "laenderreise-v3";
 const APP_SHELL = [
   "./",
   "./index.html",
   "./styles.css",
   "./app.js",
+  "./version.json",
   "./manifest.webmanifest",
   "./icons/app-icon.svg",
   "./icons/icon-192.png",
@@ -29,9 +30,6 @@ self.addEventListener("activate", (event) => {
 self.addEventListener("message", (event) => {
   if (event.data && event.data.type === "SKIP_WAITING") {
     self.skipWaiting();
-  }
-  if (event.data && event.data.type === "GET_VERSION" && event.ports[0]) {
-    event.ports[0].postMessage({ version: CACHE_NAME });
   }
 });
 
