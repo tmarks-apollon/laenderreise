@@ -29,6 +29,15 @@ Dann im Browser `http://localhost:8000` aufrufen.
 
 Der Fortschritt wird im Browser lokal gespeichert.
 
+## Auf dem iPad nutzen
+
+1. Die veröffentlichte GitHub-Pages-Adresse in Safari öffnen
+2. Auf `Teilen` tippen
+3. `Zum Home-Bildschirm` auswählen
+4. Danach startet Länderreise wie eine kleine App im Vollbild
+
+Durch `manifest`, App-Icons und den Service Worker fühlt sich die Seite auf dem iPad app-artiger an und bleibt nach dem ersten Laden auch robuster verfügbar.
+
 ## Datenstand
 
 Geprüft am `15.03.2026`.

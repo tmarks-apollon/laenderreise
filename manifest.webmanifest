@@ -1,0 +1,28 @@
+{
+  "name": "Länderreise",
+  "short_name": "Länderreise",
+  "description": "Lernspiel für Bundesländer, Nachbarländer, Kontinente und Ozeane.",
+  "lang": "de-DE",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#fcf8ef",
+  "theme_color": "#0d7a79",
+  "icons": [
+    {
+      "src": "./icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "./icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "./icons/app-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}
