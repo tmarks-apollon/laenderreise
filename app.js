@@ -1039,45 +1039,10 @@ function promptForUpdate(registration) {
   setUpdateBanner(true);
 }
 
-function getWorkerVersion(worker) {
-  return new Promise((resolve) => {
-    if (!worker) {
-      resolve(null);
-      return;
-    }
-
-    const channel = new MessageChannel();
-    channel.port1.onmessage = (event) => {
-      resolve(event.data?.version || null);
-    };
-
-    worker.postMessage({ type: "GET_VERSION" }, [channel.port2]);
-  });
-}
-
-async function maybePromptForUpdate(registration) {
-  if (!registration?.waiting) {
-    setUpdateBanner(false);
-    return;
-  }
-
-  const [waitingVersion, activeVersion] = await Promise.all([
-    getWorkerVersion(registration.waiting),
-    getWorkerVersion(registration.active),
-  ]);
-
-  if (waitingVersion && waitingVersion !== activeVersion) {
-    promptForUpdate(registration);
-    return;
-  }
-
-  setUpdateBanner(false);
-}
-
 function watchInstallingWorker(worker, registration) {
-  worker.addEventListener("statechange", async () => {
+  worker.addEventListener("statechange", () => {
     if (worker.state === "installed" && navigator.serviceWorker.controller) {
-      await maybePromptForUpdate(registration);
+      promptForUpdate(registration);
     }
   });
 }
@@ -1089,6 +1054,9 @@ function activateUpdate() {
   }
   setUpdateBanner(false);
   swRegistration.waiting.postMessage({ type: "SKIP_WAITING" });
+  window.setTimeout(() => {
+    window.location.reload();
+  }, 1200);
 }
 
 function clearMapState() {
@@ -1247,15 +1215,17 @@ if ("serviceWorker" in navigator) {
 
     navigator.serviceWorker
       .register("./sw.js")
-      .then(async (registration) => {
+      .then((registration) => {
         swRegistration = registration;
-
-        await maybePromptForUpdate(registration);
 
         registration.addEventListener("updatefound", () => {
           if (registration.installing) {
             watchInstallingWorker(registration.installing, registration);
           }
+        });
+
+        registration.update().catch(() => {
+          // Wenn das Update-Pruefen fehlschlaegt, bleibt die App normal nutzbar.
         });
       })
       .catch(() => {
