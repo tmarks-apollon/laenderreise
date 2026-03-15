@@ -233,12 +233,16 @@ const MODE_INFO = {
 
 const MAP_VARIANT_INFO = {
   states: {
-    shortTitle: "Bundesländer",
-    fullTitle: "Kartenreise · Bundesländer",
+    shortTitle: "Karte: Länder",
+    fullTitle: "Kartenreise · Länder finden",
+    badgeTitle: "Interaktive Deutschlandkarte · Länder",
+    legendTitle: "Deutschlandkarte · Länder",
   },
   capitals: {
-    shortTitle: "Hauptstädte",
-    fullTitle: "Kartenreise · Hauptstädte",
+    shortTitle: "Karte: Hauptstädte",
+    fullTitle: "Kartenreise · Hauptstädte zuordnen",
+    badgeTitle: "Interaktive Deutschlandkarte · Hauptstädte",
+    legendTitle: "Deutschlandkarte · Hauptstädte",
   },
 };
 
@@ -575,6 +579,20 @@ function currentModeTitle() {
     return MAP_VARIANT_INFO[appState.mapVariant].fullTitle;
   }
   return MODE_INFO[appState.mode].title;
+}
+
+function currentMapBadgeTitle() {
+  if (appState.topic === "states") {
+    return MAP_VARIANT_INFO[appState.mapVariant].badgeTitle;
+  }
+  return getMapConfig()?.badge || MODE_INFO.map.title;
+}
+
+function currentMapLegendTitle() {
+  if (appState.topic === "states") {
+    return MAP_VARIANT_INFO[appState.mapVariant].legendTitle;
+  }
+  return getMapConfig()?.legendTitle || "Karte";
 }
 
 function updateSelectionPreview() {
@@ -1202,8 +1220,8 @@ function renderMapSurface() {
   const config = getMapConfig();
   if (!config) return;
 
-  elements.mapBadge.textContent = config.badge;
-  elements.mapLegendTitle.textContent = config.legendTitle;
+  elements.mapBadge.textContent = currentMapBadgeTitle();
+  elements.mapLegendTitle.textContent = currentMapLegendTitle();
   elements.mapLegendText.textContent =
     appState.topic === "states" ? stateMapLegendText() : config.legendText;
   elements.mapFrame.dataset.map = appState.topic;
