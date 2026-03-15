@@ -237,6 +237,7 @@ const appState = {
   mapQueue: [],
   mapIndex: 0,
   recentCardIds: {},
+  recentMemoryIds: {},
   secretClicks: 0,
   soundEnabled: loadSoundPreference(),
   unlockedBadges: new Set(),
@@ -534,6 +535,8 @@ function resetProgress() {
   appState.currentMapTarget = null;
   appState.mapQueue = [];
   appState.mapIndex = 0;
+  appState.recentCardIds = {};
+  appState.recentMemoryIds = {};
   elements.resetStatus.textContent = "Fortschritt gelöscht. Neue Testläufe starten jetzt wieder bei null.";
   appState.unlockedBadges = new Set();
   updateSelectionPreview();
@@ -608,6 +611,26 @@ function drawCardItem(items) {
 
   appState.recentCardIds[historyKey] = [...recentIds, choice.id].slice(-historyLimit);
   return choice;
+}
+
+function drawMemorySelection(items, amount) {
+  const historyKey = appState.topic;
+  const recentIds = appState.recentMemoryIds[historyKey] || [];
+  const targetAmount = Math.min(amount, items.length);
+  const freshItems = shuffle(items.filter((item) => !recentIds.includes(item.id))).slice(0, targetAmount);
+
+  if (freshItems.length < targetAmount) {
+    const fallbackItems = shuffle(
+      items.filter((item) => !freshItems.some((selected) => selected.id === item.id))
+    ).slice(0, targetAmount - freshItems.length);
+    freshItems.push(...fallbackItems);
+  }
+
+  const historyLimit = Math.max(targetAmount, Math.min(items.length - 1, targetAmount * 2));
+  appState.recentMemoryIds[historyKey] = [...recentIds, ...freshItems.map((item) => item.id)].slice(
+    -historyLimit
+  );
+  return freshItems;
 }
 
 function shuffle(list) {
@@ -912,7 +935,7 @@ function showHint() {
 }
 
 function buildMemoryDeck() {
-  const selection = shuffle(getPool()).slice(0, appState.progressGoal);
+  const selection = drawMemorySelection(getPool(), appState.progressGoal);
   appState.memoryTarget = selection.length;
   return shuffle(
     selection.flatMap((item) => [
