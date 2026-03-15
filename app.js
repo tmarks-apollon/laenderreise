@@ -237,8 +237,6 @@ const appState = {
   mapQueue: [],
   mapIndex: 0,
   secretClicks: 0,
-  resetTimer: null,
-  resetJustFinished: false,
   soundEnabled: loadSoundPreference(),
   unlockedBadges: new Set(),
   locked: false,
@@ -519,28 +517,12 @@ function revealSecretPanel() {
   appState.secretClicks += 1;
   if (appState.secretClicks >= 5) {
     setSecretPanel(true);
-    elements.resetStatus.textContent = "Reset ist entsperrt. Zum Auslösen Taste gedrückt halten.";
+    elements.resetStatus.textContent = "Reset ist entsperrt.";
     appState.secretClicks = 0;
   }
 }
 
-function cancelResetHold(message = "") {
-  if (appState.resetTimer) {
-    clearTimeout(appState.resetTimer);
-    appState.resetTimer = null;
-  }
-  if (appState.resetJustFinished) {
-    appState.resetJustFinished = false;
-    return;
-  }
-  if (message) {
-    elements.resetStatus.textContent = message;
-  }
-}
-
 function resetProgress() {
-  cancelResetHold();
-  appState.resetJustFinished = true;
   localStorage.removeItem("laenderreise-stats");
   appState.stats = defaultStats();
   appState.sessionAnswered = 0;
@@ -563,12 +545,6 @@ function resetProgress() {
     if (appState.mode === "memory") renderMemoryBoard();
     if (appState.mode === "map") renderMapTask(true);
   }
-}
-
-function startResetHold() {
-  cancelResetHold();
-  elements.resetStatus.textContent = "Weiter halten ... nach 2 Sekunden wird wirklich zurückgesetzt.";
-  appState.resetTimer = window.setTimeout(resetProgress, 2000);
 }
 
 function toggleSound() {
@@ -1135,16 +1111,7 @@ function attachEvents() {
   elements.soundToggleBtn.addEventListener("click", toggleSound);
   elements.soundToggleBtnPlay.addEventListener("click", toggleSound);
   elements.secretTrigger.addEventListener("click", revealSecretPanel);
-  elements.resetProgressBtn.addEventListener("mousedown", startResetHold);
-  elements.resetProgressBtn.addEventListener("touchstart", startResetHold, { passive: true });
-  elements.resetProgressBtn.addEventListener("mouseup", () =>
-    cancelResetHold("Reset abgebrochen. Für einen echten Reset bitte wirklich gedrückt halten.")
-  );
-  elements.resetProgressBtn.addEventListener("mouseleave", () => cancelResetHold());
-  elements.resetProgressBtn.addEventListener("touchend", () =>
-    cancelResetHold("Reset abgebrochen. Für einen echten Reset bitte wirklich gedrückt halten.")
-  );
-  elements.resetProgressBtn.addEventListener("touchcancel", () => cancelResetHold());
+  elements.resetProgressBtn.addEventListener("click", resetProgress);
   elements.nextMapBtn.addEventListener("click", () => renderMapTask(appState.currentMapTarget === null));
   elements.mapRegions.forEach((region) => {
     region.addEventListener("click", () => handleMapChoice(region));
