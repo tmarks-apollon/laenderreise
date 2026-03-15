@@ -220,11 +220,9 @@ const BADGES = [
 
 let audioContext = null;
 let swRegistration = null;
-const APP_VERSION = "2026-03-15-5";
 
 const appState = {
   screen: "menu",
-  updateReady: false,
   topic: "states",
   mode: "cards",
   progressGoal: 8,
@@ -252,8 +250,6 @@ const elements = {
   playScreen: document.querySelector("#play-screen"),
   startGameBtn: document.querySelector("#start-game-btn"),
   backToMenuBtn: document.querySelector("#back-to-menu-btn"),
-  updateBanner: document.querySelector("#update-banner"),
-  reloadUpdateBtn: document.querySelector("#reload-update-btn"),
   soundToggleBtn: document.querySelector("#sound-toggle-btn"),
   soundToggleBtnPlay: document.querySelector("#sound-toggle-btn-play"),
   secretTrigger: document.querySelector("#secret-trigger"),
@@ -497,11 +493,6 @@ function updateSelectionPreview() {
   elements.selectedModeLabel.textContent = MODE_INFO[appState.mode].title;
   elements.playTopicPill.textContent = TOPIC_LABELS[appState.topic];
   elements.playModePill.textContent = MODE_INFO[appState.mode].title;
-}
-
-function setUpdateBanner(visible) {
-  appState.updateReady = visible;
-  elements.updateBanner.hidden = !visible;
 }
 
 function updateSoundButtons() {
@@ -1035,55 +1026,6 @@ function startGame() {
   if (appState.mode === "map") renderMapTask(true);
 }
 
-function promptForUpdate(registration) {
-  swRegistration = registration;
-  setUpdateBanner(true);
-}
-
-async function clearAppCaches() {
-  if (!("caches" in window)) return;
-  const keys = await caches.keys();
-  await Promise.all(keys.filter((key) => key.startsWith("laenderreise-")).map((key) => caches.delete(key)));
-}
-
-async function checkForAppUpdate() {
-  try {
-    const response = await fetch(`./version.json?ts=${Date.now()}`, { cache: "no-store" });
-    if (!response.ok) {
-      setUpdateBanner(false);
-      return;
-    }
-    const data = await response.json();
-    if (data.version && data.version !== APP_VERSION) {
-      promptForUpdate(swRegistration);
-      return;
-    }
-  } catch {
-    // Wenn der Versionscheck fehlschlaegt, bleibt die App normal nutzbar.
-  }
-  setUpdateBanner(false);
-}
-
-async function activateUpdate() {
-  setUpdateBanner(false);
-
-  try {
-    if (swRegistration) {
-      await swRegistration.update();
-      if (swRegistration.waiting) {
-        swRegistration.waiting.postMessage({ type: "SKIP_WAITING" });
-      }
-    }
-    await clearAppCaches();
-  } catch {
-    // Wenn das Aktualisieren nicht vollstaendig klappt, versuchen wir trotzdem neu zu laden.
-  }
-
-  window.setTimeout(() => {
-    window.location.reload();
-  }, 600);
-}
-
 function clearMapState() {
   elements.mapRegions.forEach((region) => region.classList.remove("correct", "wrong"));
 }
@@ -1184,7 +1126,6 @@ function attachEvents() {
   elements.resetMemoryBtn.addEventListener("click", renderMemoryBoard);
   elements.startGameBtn.addEventListener("click", startGame);
   elements.backToMenuBtn.addEventListener("click", () => showScreen("menu"));
-  elements.reloadUpdateBtn.addEventListener("click", activateUpdate);
   elements.soundToggleBtn.addEventListener("click", toggleSound);
   elements.soundToggleBtnPlay.addEventListener("click", toggleSound);
   elements.secretTrigger.addEventListener("click", revealSecretPanel);
@@ -1219,7 +1160,6 @@ function init() {
   updateSoundButtons();
   seedUnlockedBadges();
   updateDashboard();
-  setUpdateBanner(false);
   setSecretPanel(false);
   setMode("cards");
   setTopic("states");
@@ -1245,7 +1185,6 @@ if ("serviceWorker" in navigator) {
         registration.update().catch(() => {
           // Wenn das Service-Worker-Update-Pruefen fehlschlaegt, bleibt die App normal nutzbar.
         });
-        checkForAppUpdate();
       })
       .catch(() => {
         // Die App funktioniert auch ohne Service Worker weiter.
