@@ -363,6 +363,10 @@ h1 {
   margin-bottom: 18px;
 }
 
+.sound-toggle {
+  margin-top: 18px;
+}
+
 .compact-card,
 .sidebar-card {
   border-radius: 22px;

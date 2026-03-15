@@ -218,6 +218,8 @@ const BADGES = [
   { id: "master", label: "Länderchampion", icon: "🏆", check: (stats) => stats.masteredCount >= 10 },
 ];
 
+let audioContext = null;
+
 const appState = {
   screen: "menu",
   topic: "states",
@@ -236,6 +238,8 @@ const appState = {
   secretClicks: 0,
   resetTimer: null,
   resetJustFinished: false,
+  soundEnabled: loadSoundPreference(),
+  unlockedBadges: new Set(),
   locked: false,
   stats: loadStats(),
 };
@@ -245,6 +249,8 @@ const elements = {
   playScreen: document.querySelector("#play-screen"),
   startGameBtn: document.querySelector("#start-game-btn"),
   backToMenuBtn: document.querySelector("#back-to-menu-btn"),
+  soundToggleBtn: document.querySelector("#sound-toggle-btn"),
+  soundToggleBtnPlay: document.querySelector("#sound-toggle-btn-play"),
   secretTrigger: document.querySelector("#secret-trigger"),
   secretPanel: document.querySelector("#secret-panel"),
   resetProgressBtn: document.querySelector("#reset-progress-btn"),
@@ -324,6 +330,108 @@ function defaultStats() {
   };
 }
 
+function loadSoundPreference() {
+  try {
+    const saved = localStorage.getItem("laenderreise-sound");
+    return saved === null ? true : saved === "on";
+  } catch {
+    return true;
+  }
+}
+
+function saveSoundPreference() {
+  localStorage.setItem("laenderreise-sound", appState.soundEnabled ? "on" : "off");
+}
+
+function ensureAudioContext() {
+  if (!("AudioContext" in window || "webkitAudioContext" in window)) {
+    return null;
+  }
+
+  if (!audioContext) {
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    audioContext = new AudioContextClass();
+  }
+
+  if (audioContext.state === "suspended") {
+    audioContext.resume().catch(() => {
+      // Die App funktioniert auch ohne Ton.
+    });
+  }
+
+  return audioContext;
+}
+
+function playToneSequence(notes, volume = 0.045) {
+  if (!appState.soundEnabled) return;
+  const ctx = ensureAudioContext();
+  if (!ctx) return;
+
+  let offset = 0;
+  notes.forEach(({ frequency, duration, type = "sine", gain = 1 }) => {
+    const oscillator = ctx.createOscillator();
+    const gainNode = ctx.createGain();
+    const start = ctx.currentTime + offset;
+    const end = start + duration;
+
+    oscillator.type = type;
+    oscillator.frequency.setValueAtTime(frequency, start);
+    gainNode.gain.setValueAtTime(0.0001, start);
+    gainNode.gain.exponentialRampToValueAtTime(volume * gain, start + 0.02);
+    gainNode.gain.exponentialRampToValueAtTime(0.0001, end);
+
+    oscillator.connect(gainNode);
+    gainNode.connect(ctx.destination);
+    oscillator.start(start);
+    oscillator.stop(end);
+    offset += duration * 0.95;
+  });
+}
+
+function playSound(kind) {
+  const patterns = {
+    correct: [
+      { frequency: 523.25, duration: 0.08, type: "triangle" },
+      { frequency: 659.25, duration: 0.11, type: "triangle" },
+    ],
+    wrong: [
+      { frequency: 320, duration: 0.12, type: "sine", gain: 0.75 },
+      { frequency: 260, duration: 0.12, type: "sine", gain: 0.65 },
+    ],
+    celebrate: [
+      { frequency: 523.25, duration: 0.08, type: "triangle" },
+      { frequency: 659.25, duration: 0.08, type: "triangle" },
+      { frequency: 783.99, duration: 0.14, type: "triangle" },
+    ],
+    reveal: [
+      { frequency: 440, duration: 0.07, type: "sine", gain: 0.45 },
+      { frequency: 554.37, duration: 0.09, type: "sine", gain: 0.4 },
+    ],
+    toggleOn: [
+      { frequency: 392, duration: 0.06, type: "triangle" },
+      { frequency: 523.25, duration: 0.08, type: "triangle" },
+    ],
+  };
+
+  if (kind === "toggleOff") {
+    const wasEnabled = appState.soundEnabled;
+    appState.soundEnabled = true;
+    playToneSequence(
+      [
+        { frequency: 392, duration: 0.06, type: "triangle", gain: 0.7 },
+        { frequency: 293.66, duration: 0.08, type: "triangle", gain: 0.65 },
+      ],
+      0.04
+    );
+    appState.soundEnabled = wasEnabled;
+    return;
+  }
+
+  if (patterns[kind]) {
+    playToneSequence(patterns[kind]);
+  }
+}
+
 function saveStats() {
   localStorage.setItem("laenderreise-stats", JSON.stringify(appState.stats));
 }
@@ -386,6 +494,12 @@ function updateSelectionPreview() {
   elements.playModePill.textContent = MODE_INFO[appState.mode].title;
 }
 
+function updateSoundButtons() {
+  const label = `Sound: ${appState.soundEnabled ? "an" : "aus"}`;
+  elements.soundToggleBtn.textContent = label;
+  elements.soundToggleBtnPlay.textContent = label;
+}
+
 function showScreen(screen) {
   appState.screen = screen;
   elements.menuScreen.classList.toggle("active", screen === "menu");
@@ -437,6 +551,7 @@ function resetProgress() {
   appState.mapQueue = [];
   appState.mapIndex = 0;
   elements.resetStatus.textContent = "Fortschritt gelöscht. Neue Testläufe starten jetzt wieder bei null.";
+  appState.unlockedBadges = new Set();
   updateSelectionPreview();
   updateDashboard();
 
@@ -453,6 +568,21 @@ function startResetHold() {
   cancelResetHold();
   elements.resetStatus.textContent = "Weiter halten ... nach 2 Sekunden wird wirklich zurückgesetzt.";
   appState.resetTimer = window.setTimeout(resetProgress, 2000);
+}
+
+function toggleSound() {
+  ensureAudioContext();
+  const willEnable = !appState.soundEnabled;
+  appState.soundEnabled = willEnable;
+  saveSoundPreference();
+  updateSoundButtons();
+  playSound(willEnable ? "toggleOn" : "toggleOff");
+}
+
+function seedUnlockedBadges() {
+  appState.unlockedBadges = new Set(
+    BADGES.filter((badge) => badge.check(appState.stats)).map((badge) => badge.id)
+  );
 }
 
 function formatDate() {
@@ -583,6 +713,12 @@ function renderBadges() {
   elements.badgesList.innerHTML = "";
   BADGES.forEach((badge) => {
     const unlocked = badge.check(appState.stats);
+    if (unlocked && !appState.unlockedBadges.has(badge.id)) {
+      appState.unlockedBadges.add(badge.id);
+      if (appState.stats.totalAnswered > 0) {
+        playSound("celebrate");
+      }
+    }
     const badgeEl = document.createElement("div");
     badgeEl.className = `badge${unlocked ? "" : " locked"}`;
     badgeEl.textContent = `${badge.icon} ${badge.label}`;
@@ -739,6 +875,7 @@ function scoreQuizAnswer(option, button) {
     button.classList.add("wrong");
   }
   markAnswer(appState.currentQuestion.item, correct, 10);
+  playSound(correct ? "correct" : "wrong");
   elements.quizFeedback.textContent = correct
     ? `Richtig. ${appState.currentQuestion.explanation}`
     : `Fast. ${appState.currentQuestion.explanation}`;
@@ -762,6 +899,7 @@ function submitWriteAnswer(event) {
 
   const correct = isCorrectAnswer(answer, appState.currentQuestion);
   markAnswer(appState.currentQuestion.item, correct, 15);
+  playSound(correct ? "correct" : "wrong");
   if (correct) {
     appState.stats.writeCorrect += 1;
   }
@@ -839,6 +977,7 @@ function flipMemoryCard(button, index) {
     appState.memoryFlipped = [];
     appState.memoryMatches += 1;
     appState.stats.stars += 6;
+    playSound("correct");
     elements.memoryFeedback.textContent = "Treffer. Das Paar passt zusammen.";
     updateDashboard();
 
@@ -846,6 +985,7 @@ function flipMemoryCard(button, index) {
       appState.stats.memoryWins += 1;
       appState.sessionAnswered = appState.progressGoal;
       appState.stats.bestStreak = Math.max(appState.stats.bestStreak, appState.stats.streak);
+      playSound("celebrate");
       elements.memoryFeedback.textContent = "Geschafft. Alle Paare gefunden.";
       updateDashboard();
     }
@@ -853,6 +993,7 @@ function flipMemoryCard(button, index) {
   }
 
   appState.locked = true;
+  playSound("wrong");
   elements.memoryFeedback.textContent = "Noch kein Paar. Dreht weiter.";
   setTimeout(() => {
     first.button.classList.remove("revealed");
@@ -929,6 +1070,7 @@ function handleMapChoice(region) {
   clearMapState();
   region.classList.add(isCorrect ? "correct" : "wrong");
   markAnswer(appState.currentMapTarget, isCorrect, 12);
+  playSound(isCorrect ? "correct" : "wrong");
 
   if (isCorrect) {
     elements.mapFeedback.textContent = `Richtig. ${pretty(appState.currentMapTarget.detail)}`;
@@ -937,6 +1079,7 @@ function handleMapChoice(region) {
       appState.currentMapTarget = null;
       elements.mapQuestion.textContent = "Weltreise geschafft.";
       elements.mapSubtext.textContent = "Ihr habt alle Kontinente und Ozeane dieser Runde gefunden.";
+      playSound("celebrate");
       elements.mapFeedback.textContent = `Super. ${pretty(region.dataset.id.includes("ocean") ? "Auch die Weltmeere sitzen schon gut." : "Die Kontinente sitzen schon gut.")}`;
       elements.nextMapBtn.textContent = "Neue Runde";
     }
@@ -957,16 +1100,20 @@ function attachEvents() {
   });
 
   elements.flipCardBtn.addEventListener("click", () => {
+    ensureAudioContext();
     elements.flashcard.classList.add("flipped");
+    playSound("reveal");
   });
 
   elements.knewCardBtn.addEventListener("click", () => {
     markAnswer(appState.currentCard, true, 5);
+    playSound("correct");
     renderCard();
   });
 
   elements.practiceCardBtn.addEventListener("click", () => {
     markAnswer(appState.currentCard, false, 0);
+    playSound("wrong");
     renderCard();
   });
 
@@ -978,6 +1125,8 @@ function attachEvents() {
   elements.resetMemoryBtn.addEventListener("click", renderMemoryBoard);
   elements.startGameBtn.addEventListener("click", startGame);
   elements.backToMenuBtn.addEventListener("click", () => showScreen("menu"));
+  elements.soundToggleBtn.addEventListener("click", toggleSound);
+  elements.soundToggleBtnPlay.addEventListener("click", toggleSound);
   elements.secretTrigger.addEventListener("click", revealSecretPanel);
   elements.resetProgressBtn.addEventListener("mousedown", startResetHold);
   elements.resetProgressBtn.addEventListener("touchstart", startResetHold, { passive: true });
@@ -1007,6 +1156,8 @@ function init() {
   refreshModeAvailability();
   refreshProgressGoal();
   updateSelectionPreview();
+  updateSoundButtons();
+  seedUnlockedBadges();
   updateDashboard();
   setSecretPanel(false);
   setMode("cards");

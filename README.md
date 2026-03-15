@@ -26,6 +26,7 @@ Dann im Browser `http://localhost:8000` aufrufen.
 - `Schreibprofi`: Antwort frei eintippen
 - `Memory`: Land und Hauptstadt als Paar finden
 - `Weltkarte`: Kontinente und Ozeane direkt auf der Karte anklicken
+- `Sound`: sanfte Rückmeldetöne lassen sich im Menü und in der Lernansicht an- und ausschalten
 
 Der Fortschritt wird im Browser lokal gespeichert.
 
