@@ -714,6 +714,15 @@ h1 {
   margin: 0 auto;
 }
 
+.map-frame[data-map="states"] .map-hotspot {
+  min-width: 44px;
+  min-height: 44px;
+}
+
+.map-frame[data-map="states"] .map-hotspot::after {
+  inset: 28%;
+}
+
 .map-base-image {
   display: block;
   width: 100%;
