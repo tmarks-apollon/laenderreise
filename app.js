@@ -236,6 +236,7 @@ const appState = {
   currentMapTarget: null,
   mapQueue: [],
   mapIndex: 0,
+  recentCardIds: {},
   secretClicks: 0,
   soundEnabled: loadSoundPreference(),
   unlockedBadges: new Set(),
@@ -597,6 +598,18 @@ function weightedChoice(items) {
   return weighted[Math.floor(Math.random() * weighted.length)];
 }
 
+function drawCardItem(items) {
+  const historyKey = appState.topic;
+  const recentIds = appState.recentCardIds[historyKey] || [];
+  const historyLimit = Math.max(1, Math.min(4, items.length - 1));
+  const availableItems = items.filter((item) => !recentIds.includes(item.id));
+  const pool = availableItems.length ? availableItems : items;
+  const choice = weightedChoice(pool);
+
+  appState.recentCardIds[historyKey] = [...recentIds, choice.id].slice(-historyLimit);
+  return choice;
+}
+
 function shuffle(list) {
   const copy = [...list];
   for (let i = copy.length - 1; i > 0; i -= 1) {
@@ -793,7 +806,7 @@ function setTopic(topic) {
 }
 
 function renderCard() {
-  const item = weightedChoice(getPool());
+  const item = drawCardItem(getPool());
   appState.currentCard = item;
   elements.flashcard.classList.remove("flipped");
   elements.cardTag.textContent =
