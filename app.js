@@ -219,9 +219,11 @@ const BADGES = [
 ];
 
 let audioContext = null;
+let swRegistration = null;
 
 const appState = {
   screen: "menu",
+  updateReady: false,
   topic: "states",
   mode: "cards",
   progressGoal: 8,
@@ -249,6 +251,8 @@ const elements = {
   playScreen: document.querySelector("#play-screen"),
   startGameBtn: document.querySelector("#start-game-btn"),
   backToMenuBtn: document.querySelector("#back-to-menu-btn"),
+  updateBanner: document.querySelector("#update-banner"),
+  reloadUpdateBtn: document.querySelector("#reload-update-btn"),
   soundToggleBtn: document.querySelector("#sound-toggle-btn"),
   soundToggleBtnPlay: document.querySelector("#sound-toggle-btn-play"),
   secretTrigger: document.querySelector("#secret-trigger"),
@@ -492,6 +496,11 @@ function updateSelectionPreview() {
   elements.selectedModeLabel.textContent = MODE_INFO[appState.mode].title;
   elements.playTopicPill.textContent = TOPIC_LABELS[appState.topic];
   elements.playModePill.textContent = MODE_INFO[appState.mode].title;
+}
+
+function setUpdateBanner(visible) {
+  appState.updateReady = visible;
+  elements.updateBanner.hidden = !visible;
 }
 
 function updateSoundButtons() {
@@ -1025,6 +1034,24 @@ function startGame() {
   if (appState.mode === "map") renderMapTask(true);
 }
 
+function promptForUpdate(registration) {
+  swRegistration = registration;
+  setUpdateBanner(true);
+}
+
+function watchInstallingWorker(worker, registration) {
+  worker.addEventListener("statechange", () => {
+    if (worker.state === "installed" && navigator.serviceWorker.controller) {
+      promptForUpdate(registration);
+    }
+  });
+}
+
+function activateUpdate() {
+  if (!swRegistration || !swRegistration.waiting) return;
+  swRegistration.waiting.postMessage({ type: "SKIP_WAITING" });
+}
+
 function clearMapState() {
   elements.mapRegions.forEach((region) => region.classList.remove("correct", "wrong"));
 }
@@ -1125,6 +1152,7 @@ function attachEvents() {
   elements.resetMemoryBtn.addEventListener("click", renderMemoryBoard);
   elements.startGameBtn.addEventListener("click", startGame);
   elements.backToMenuBtn.addEventListener("click", () => showScreen("menu"));
+  elements.reloadUpdateBtn.addEventListener("click", activateUpdate);
   elements.soundToggleBtn.addEventListener("click", toggleSound);
   elements.soundToggleBtnPlay.addEventListener("click", toggleSound);
   elements.secretTrigger.addEventListener("click", revealSecretPanel);
@@ -1159,6 +1187,7 @@ function init() {
   updateSoundButtons();
   seedUnlockedBadges();
   updateDashboard();
+  setUpdateBanner(false);
   setSecretPanel(false);
   setMode("cards");
   setTopic("states");
@@ -1169,8 +1198,31 @@ init();
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("./sw.js").catch(() => {
-      // Die App funktioniert auch ohne Service Worker weiter.
+    let refreshing = false;
+
+    navigator.serviceWorker.addEventListener("controllerchange", () => {
+      if (refreshing) return;
+      refreshing = true;
+      window.location.reload();
     });
+
+    navigator.serviceWorker
+      .register("./sw.js")
+      .then((registration) => {
+        swRegistration = registration;
+
+        if (registration.waiting) {
+          promptForUpdate(registration);
+        }
+
+        registration.addEventListener("updatefound", () => {
+          if (registration.installing) {
+            watchInstallingWorker(registration.installing, registration);
+          }
+        });
+      })
+      .catch(() => {
+        // Die App funktioniert auch ohne Service Worker weiter.
+      });
   });
 }
