@@ -1341,12 +1341,13 @@ function handleMapChoice(region) {
     elements.mapFeedback.textContent = `Richtig. ${appState.currentMapTarget.feedback}`;
     appState.mapIndex += 1;
     if (appState.mapIndex >= appState.mapQueue.length) {
+      const completedTarget = appState.currentMapTarget;
       appState.currentMapTarget = null;
       elements.mapQuestion.textContent =
         appState.topic === "states" ? "Deutschlandrunde geschafft." : "Weltreise geschafft.";
-      elements.mapSubtext.textContent = appState.currentMapTarget?.finishSubtext || target.finishSubtext;
+      elements.mapSubtext.textContent = completedTarget.finishSubtext;
       playSound("celebrate");
-      elements.mapFeedback.textContent = target.celebrateText;
+      elements.mapFeedback.textContent = completedTarget.celebrateText;
       elements.nextMapBtn.textContent = "Neue Runde";
     }
     elements.nextMapBtn.disabled = false;
