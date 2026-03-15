@@ -156,6 +156,58 @@ const DATASETS = {
   mixed: [...STATES, ...NEIGHBORS],
 };
 
+const MAP_CONFIG = {
+  states: {
+    badge: "Interaktive Deutschlandkarte",
+    image: "./assets/maps/germany-states-blank.png",
+    alt: "Karte Deutschlands mit den 16 Bundesländern",
+    legendTitle: "Deutschlandkarte",
+    legendText:
+      "Mal sucht ihr direkt nach dem Bundesland, mal über seine Hauptstadt. So verbinden sich Name, Lage und Hauptstadt noch besser.",
+    hotspots: [
+      { id: "sh", label: "Schleswig-Holstein", x: 59, y: 8, w: 16, h: 7 },
+      { id: "hh", label: "Hamburg", x: 56, y: 15, w: 8, h: 5 },
+      { id: "mv", label: "Mecklenburg-Vorpommern", x: 78, y: 13, w: 18, h: 9 },
+      { id: "hb", label: "Bremen", x: 35, y: 19, w: 8, h: 5 },
+      { id: "ni", label: "Niedersachsen", x: 43, y: 26, w: 24, h: 18 },
+      { id: "be", label: "Berlin", x: 70, y: 24, w: 7, h: 5 },
+      { id: "bb", label: "Brandenburg", x: 75, y: 30, w: 18, h: 15 },
+      { id: "st", label: "Sachsen-Anhalt", x: 59, y: 35, w: 15, h: 11 },
+      { id: "nw", label: "Nordrhein-Westfalen", x: 21, y: 37, w: 19, h: 14 },
+      { id: "he", label: "Hessen", x: 36, y: 49, w: 15, h: 12 },
+      { id: "th", label: "Thüringen", x: 54, y: 50, w: 13, h: 10 },
+      { id: "sn", label: "Sachsen", x: 69, y: 50, w: 17, h: 11 },
+      { id: "rp", label: "Rheinland-Pfalz", x: 27, y: 59, w: 14, h: 12 },
+      { id: "sl", label: "Saarland", x: 18, y: 66, w: 10, h: 8 },
+      { id: "bw", label: "Baden-Württemberg", x: 35, y: 79, w: 21, h: 16 },
+      { id: "by", label: "Bayern", x: 66, y: 79, w: 30, h: 19 },
+    ],
+  },
+  continents: {
+    badge: "Interaktive Weltkarte",
+    image: "./assets/maps/world-oceans.svg",
+    alt: "Weltkarte mit Kontinenten und Ozeanen",
+    legendTitle: "Weltkarte",
+    legendText:
+      "Der Pazifik hat zwei Klickfelder, weil er links und rechts auf der Weltkarte zu sehen ist. So bleibt die Lage realistischer.",
+    hotspots: [
+      { id: "arctic-ocean", label: "Arktischer Ozean", x: 50, y: 7, w: 78, h: 10 },
+      { id: "pacific-ocean", label: "Pazifischer Ozean", x: 8, y: 43, w: 12, h: 37 },
+      { id: "pacific-ocean", label: "Pazifischer Ozean", x: 94, y: 43, w: 10, h: 34 },
+      { id: "atlantic-ocean", label: "Atlantischer Ozean", x: 40, y: 45, w: 15, h: 31 },
+      { id: "indian-ocean", label: "Indischer Ozean", x: 68, y: 54, w: 17, h: 18 },
+      { id: "southern-ocean", label: "Südlicher Ozean", x: 50, y: 79, w: 70, h: 13 },
+      { id: "north-america", label: "Nordamerika", x: 19, y: 28, w: 22, h: 21 },
+      { id: "south-america", label: "Südamerika", x: 30, y: 58, w: 14, h: 24 },
+      { id: "europe", label: "Europa", x: 51, y: 24, w: 10, h: 10 },
+      { id: "africa", label: "Afrika", x: 51, y: 46, w: 14, h: 21 },
+      { id: "asia", label: "Asien", x: 69, y: 29, w: 31, h: 25 },
+      { id: "australia", label: "Australien", x: 82, y: 64, w: 13, h: 11 },
+      { id: "antarctica", label: "Antarktis", x: 50, y: 93, w: 55, h: 8 },
+    ],
+  },
+};
+
 const MODE_INFO = {
   cards: {
     title: "Lernkarten",
@@ -174,8 +226,8 @@ const MODE_INFO = {
     description: "Findet passende Paare aus Land und Hauptstadt. So verknüpft sich das Wissen spielerisch.",
   },
   map: {
-    title: "Weltkarte",
-    description: "Klickt auf der Karte den richtigen Kontinent oder Ozean an. Das verbindet Namen direkt mit der Weltkarte.",
+    title: "Kartenreise",
+    description: "Klickt auf der Karte den richtigen Bereich an. Das verbindet Namen direkt mit dem passenden Ort.",
   },
 };
 
@@ -301,11 +353,16 @@ const elements = {
   memoryBoard: document.querySelector("#memory-board"),
   memoryFeedback: document.querySelector("#memory-feedback"),
   resetMemoryBtn: document.querySelector("#reset-memory-btn"),
+  mapBadge: document.querySelector("#map-badge"),
+  mapFrame: document.querySelector("#map-frame"),
+  mapBaseImage: document.querySelector("#map-base-image"),
+  mapHotspots: document.querySelector("#map-hotspots"),
+  mapLegendTitle: document.querySelector("#map-legend-title"),
+  mapLegendText: document.querySelector("#map-legend-text"),
   mapQuestion: document.querySelector("#map-question"),
   mapSubtext: document.querySelector("#map-subtext"),
   mapFeedback: document.querySelector("#map-feedback"),
   nextMapBtn: document.querySelector("#next-map-btn"),
-  mapRegions: [...document.querySelectorAll("#world-map .map-region")],
 };
 
 function loadStats() {
@@ -479,11 +536,17 @@ function refreshProgressGoal() {
 }
 
 function currentModeDescription() {
+  if (appState.topic === "states" && appState.mode === "map") {
+    return "Auf der Deutschlandkarte tauchen Namen und Hauptstädte gemischt auf. So wächst das räumliche Verständnis gleich mit.";
+  }
   if (appState.topic === "continents" && appState.mode === "cards") {
     return "Lernt Kontinente und Ozeane mit kurzen Merksätzen und sprecht die Antworten laut mit.";
   }
   if (appState.topic === "continents" && appState.mode === "memory") {
     return "Hier wird Begriff mit Merksatz verbunden. Das hilft besonders beim Wiedererkennen auf der Karte.";
+  }
+  if (appState.topic === "continents" && appState.mode === "map") {
+    return "Die Weltkarte trainiert Lagegefühl und Namen zusammen. So wird aus Begriffslernen echtes Kartenwissen.";
   }
   return MODE_INFO[appState.mode].description;
 }
@@ -583,6 +646,18 @@ function formatDate() {
 
 function getPool() {
   return DATASETS[appState.topic];
+}
+
+function getMapConfig(topic = appState.topic) {
+  return MAP_CONFIG[topic] || null;
+}
+
+function mapModeAvailable(topic = appState.topic) {
+  return Boolean(getMapConfig(topic));
+}
+
+function getMapRegions() {
+  return [...elements.mapHotspots.querySelectorAll(".map-hotspot")];
 }
 
 function getItemStats(id) {
@@ -783,7 +858,7 @@ function markAnswer(item, correct, stars) {
 }
 
 function setMode(mode) {
-  if (mode === "map" && appState.topic !== "continents") {
+  if (mode === "map" && !mapModeAvailable()) {
     return;
   }
   appState.mode = mode;
@@ -812,7 +887,7 @@ function setTopic(topic) {
   elements.topicButtons.forEach((button) =>
     button.classList.toggle("active", button.dataset.topic === topic)
   );
-  if (appState.mode === "map" && topic !== "continents") {
+  if (appState.mode === "map" && !mapModeAvailable(topic)) {
     setMode("cards");
     return;
   }
@@ -1023,16 +1098,81 @@ function flipMemoryCard(button, index) {
 }
 
 function getMapLabel(mapId) {
-  const item = DATASETS.continents.find((entry) => entry.mapId === mapId);
+  const config = getMapConfig();
+  const hotspot = config?.hotspots.find((entry) => entry.id === mapId);
+  if (hotspot) return hotspot.label;
+
+  const item = [...STATES, ...DATASETS.continents].find(
+    (entry) => entry.id === mapId || entry.mapId === mapId
+  );
   return item ? pretty(item.name) : "dieser Bereich";
 }
 
 function refreshModeAvailability() {
   elements.modeButtons.forEach((button) => {
     if (button.dataset.mode === "map") {
-      button.disabled = appState.topic !== "continents";
+      button.disabled = !mapModeAvailable();
     }
   });
+}
+
+function renderMapSurface() {
+  const config = getMapConfig();
+  if (!config) return;
+
+  elements.mapBadge.textContent = config.badge;
+  elements.mapLegendTitle.textContent = config.legendTitle;
+  elements.mapLegendText.textContent = config.legendText;
+  elements.mapFrame.dataset.map = appState.topic;
+  elements.mapBaseImage.src = config.image;
+  elements.mapBaseImage.alt = config.alt;
+  elements.mapHotspots.innerHTML = "";
+
+  config.hotspots.forEach((hotspot) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "map-hotspot";
+    button.dataset.id = hotspot.id;
+    button.setAttribute("aria-label", hotspot.label);
+    button.style.setProperty("--x", hotspot.x);
+    button.style.setProperty("--y", hotspot.y);
+    button.style.setProperty("--w", hotspot.w);
+    button.style.setProperty("--h", hotspot.h);
+    button.innerHTML = `<span class="map-hotspot-label">${hotspot.label}</span>`;
+    elements.mapHotspots.append(button);
+  });
+}
+
+function buildMapQueue() {
+  return shuffle(getPool())
+    .slice(0, appState.progressGoal)
+    .map((item) => {
+      if (appState.topic === "states") {
+        const askForCapital = Math.random() < 0.5;
+        return {
+          item,
+          mapId: item.id,
+          label: pretty(item.name),
+          prompt: askForCapital
+            ? `Klicke auf das Bundesland mit der Hauptstadt ${pretty(item.capital)}.`
+            : `Klicke auf ${pretty(item.name)}.`,
+          subtext: "Suche auf der Deutschlandkarte das passende Bundesland.",
+          feedback: `${pretty(item.capital)} ist die Hauptstadt von ${pretty(item.name)}.`,
+        };
+      }
+
+      return {
+        item,
+        mapId: item.mapId,
+        label: pretty(item.name),
+        prompt: `Klicke auf ${pretty(item.name)}.`,
+        subtext:
+          item.group === "oceans"
+            ? "Suche das richtige Weltmeer auf der Karte."
+            : "Suche den richtigen Kontinent auf der Karte.",
+        feedback: pretty(item.detail),
+      };
+    });
 }
 
 function startGame() {
@@ -1045,13 +1185,14 @@ function startGame() {
 }
 
 function clearMapState() {
-  elements.mapRegions.forEach((region) => region.classList.remove("correct", "wrong"));
+  getMapRegions().forEach((region) => region.classList.remove("correct", "wrong"));
 }
 
 function renderMapTask(resetQueue = false) {
+  renderMapSurface();
   refreshProgressGoal();
   if (resetQueue || !appState.mapQueue.length) {
-    appState.mapQueue = shuffle(getPool()).slice(0, appState.progressGoal);
+    appState.mapQueue = buildMapQueue();
     appState.mapIndex = 0;
     appState.sessionAnswered = 0;
   }
@@ -1063,20 +1204,21 @@ function renderMapTask(resetQueue = false) {
   const target = appState.mapQueue[appState.mapIndex];
   if (!target) {
     appState.currentMapTarget = null;
-    elements.mapQuestion.textContent = "Weltreise geschafft.";
+    elements.mapQuestion.textContent =
+      appState.topic === "states" ? "Deutschlandrunde geschafft." : "Weltreise geschafft.";
     elements.mapSubtext.textContent = "Startet gern gleich die nächste Runde.";
-    elements.mapFeedback.textContent = "Super. Ihr habt alle Aufgaben dieser Kartenrunde gelöst.";
+    elements.mapFeedback.textContent =
+      appState.topic === "states"
+        ? "Super. Ihr habt die Bundesländer dieser Kartenrunde sicher gefunden."
+        : "Super. Ihr habt alle Aufgaben dieser Kartenrunde gelöst.";
     elements.nextMapBtn.disabled = false;
     elements.nextMapBtn.textContent = "Neue Runde";
     return;
   }
 
   appState.currentMapTarget = target;
-  elements.mapQuestion.textContent = `Klicke auf ${pretty(target.name)}.`;
-  elements.mapSubtext.textContent =
-    target.group === "oceans"
-      ? "Suche das richtige Weltmeer auf der Karte."
-      : "Suche den richtigen Kontinent auf der Karte.";
+  elements.mapQuestion.textContent = target.prompt;
+  elements.mapSubtext.textContent = target.subtext;
   elements.mapFeedback.textContent = "";
 }
 
@@ -1088,25 +1230,32 @@ function handleMapChoice(region) {
   const isCorrect = region.dataset.id === appState.currentMapTarget.mapId;
   clearMapState();
   region.classList.add(isCorrect ? "correct" : "wrong");
-  markAnswer(appState.currentMapTarget, isCorrect, 12);
+  markAnswer(appState.currentMapTarget.item, isCorrect, 12);
   playSound(isCorrect ? "correct" : "wrong");
 
   if (isCorrect) {
-    elements.mapFeedback.textContent = `Richtig. ${pretty(appState.currentMapTarget.detail)}`;
+    elements.mapFeedback.textContent = `Richtig. ${appState.currentMapTarget.feedback}`;
     appState.mapIndex += 1;
     if (appState.mapIndex >= appState.mapQueue.length) {
       appState.currentMapTarget = null;
-      elements.mapQuestion.textContent = "Weltreise geschafft.";
-      elements.mapSubtext.textContent = "Ihr habt alle Kontinente und Ozeane dieser Runde gefunden.";
+      elements.mapQuestion.textContent =
+        appState.topic === "states" ? "Deutschlandrunde geschafft." : "Weltreise geschafft.";
+      elements.mapSubtext.textContent =
+        appState.topic === "states"
+          ? "Ihr habt alle Bundesländer dieser Runde gefunden."
+          : "Ihr habt alle Kontinente und Ozeane dieser Runde gefunden.";
       playSound("celebrate");
-      elements.mapFeedback.textContent = `Super. ${pretty(region.dataset.id.includes("ocean") ? "Auch die Weltmeere sitzen schon gut." : "Die Kontinente sitzen schon gut.")}`;
+      elements.mapFeedback.textContent =
+        appState.topic === "states"
+          ? "Super. Name, Lage und Hauptstadt greifen schon richtig gut zusammen."
+          : `Super. ${pretty(region.dataset.id.includes("ocean") ? "Auch die Weltmeere sitzen schon gut." : "Die Kontinente sitzen schon gut.")}`;
       elements.nextMapBtn.textContent = "Neue Runde";
     }
     elements.nextMapBtn.disabled = false;
     return;
   }
 
-  elements.mapFeedback.textContent = `Das ist ${getMapLabel(region.dataset.id)}. Gesucht war ${pretty(appState.currentMapTarget.name)}.`;
+  elements.mapFeedback.textContent = `Das ist ${getMapLabel(region.dataset.id)}. Gesucht war ${appState.currentMapTarget.label}.`;
 }
 
 function attachEvents() {
@@ -1149,14 +1298,18 @@ function attachEvents() {
   elements.secretTrigger.addEventListener("click", revealSecretPanel);
   elements.resetProgressBtn.addEventListener("click", resetProgress);
   elements.nextMapBtn.addEventListener("click", () => renderMapTask(appState.currentMapTarget === null));
-  elements.mapRegions.forEach((region) => {
-    region.addEventListener("click", () => handleMapChoice(region));
-    region.addEventListener("keydown", (event) => {
-      if (event.key === "Enter" || event.key === " ") {
-        event.preventDefault();
-        handleMapChoice(region);
-      }
-    });
+  elements.mapHotspots.addEventListener("click", (event) => {
+    const region = event.target.closest(".map-hotspot");
+    if (region) {
+      handleMapChoice(region);
+    }
+  });
+  elements.mapHotspots.addEventListener("keydown", (event) => {
+    const region = event.target.closest(".map-hotspot");
+    if (region && (event.key === "Enter" || event.key === " ")) {
+      event.preventDefault();
+      handleMapChoice(region);
+    }
   });
 }
 

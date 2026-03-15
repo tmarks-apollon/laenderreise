@@ -4,7 +4,7 @@ Kleines Lernspiel für den Browser zum Üben von:
 
 - deutschen Bundesländern mit ihren Hauptstädten
 - Deutschlands neun europäischen Nachbarländern mit ihren Hauptstädten
-- sieben Kontinenten und fünf Ozeanen mit interaktiver Weltkarte
+- sieben Kontinenten und fünf Ozeanen mit interaktiver Kartenreise
 
 ## Starten
 
@@ -25,7 +25,7 @@ Dann im Browser `http://localhost:8000` aufrufen.
 - `Quizduell`: richtige Antwort aus vier Möglichkeiten wählen
 - `Schreibprofi`: Antwort frei eintippen
 - `Memory`: Land und Hauptstadt als Paar finden
-- `Weltkarte`: Kontinente und Ozeane direkt auf der Karte anklicken
+- `Kartenreise`: Bundesländer auf der Deutschlandkarte sowie Kontinente und Ozeane auf der Weltkarte anklicken
 - `Sound`: sanfte Rückmeldetöne lassen sich im Menü und in der Lernansicht an- und ausschalten
 
 Der Fortschritt wird im Browser lokal gespeichert.
@@ -47,3 +47,4 @@ Geprüft am `15.03.2026`.
 - Deutschlands neun Nachbarstaaten anhand der Länderinformationen des Auswärtigen Amts
 - Kontinente im in Grundschulen üblichen 7-Kontinente-Modell anhand von Klett-Lernmaterialien
 - Ozeane anhand von Klett- und Diercke-Materialien
+- Kartenbasis Deutschland und Welt über Wikimedia Commons; Weltkarten-Positionen zusätzlich mit Diercke abgeglichen

@@ -685,56 +685,127 @@ h1 {
 }
 
 .world-map-wrap {
-  border-radius: 28px;
-  padding: 18px;
+  display: grid;
+  gap: 18px;
+  border-radius: 30px;
+  padding: 20px;
   background:
-    radial-gradient(circle at top, rgba(255, 255, 255, 0.6), transparent 45%),
-    linear-gradient(180deg, rgba(188, 224, 255, 0.65), rgba(171, 214, 238, 0.52));
-  border: 1px solid rgba(13, 122, 121, 0.16);
+    radial-gradient(circle at top, rgba(255, 255, 255, 0.62), transparent 42%),
+    linear-gradient(180deg, rgba(188, 224, 255, 0.72), rgba(171, 214, 238, 0.56));
+  border: 1px solid rgba(13, 122, 121, 0.18);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.54);
 }
 
-.world-map {
+.map-frame {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  border-radius: 26px;
+  background:
+    linear-gradient(180deg, rgba(234, 246, 252, 0.84), rgba(202, 227, 239, 0.7)),
+    rgba(255, 255, 255, 0.8);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.45),
+    0 18px 38px rgba(44, 97, 124, 0.14);
+}
+
+.map-frame[data-map="states"] {
+  max-width: 560px;
+  margin: 0 auto;
+}
+
+.map-base-image {
+  display: block;
   width: 100%;
   height: auto;
+  user-select: none;
+  -webkit-user-drag: none;
 }
 
-.map-region {
+.map-hotspots {
+  position: absolute;
+  inset: 0;
+}
+
+.map-hotspot {
+  position: absolute;
+  left: calc(var(--x) * 1%);
+  top: calc(var(--y) * 1%);
+  width: calc(var(--w) * 1%);
+  height: calc(var(--h) * 1%);
+  transform: translate(-50%, -50%);
+  border-radius: 999px;
+  border: 2px solid rgba(255, 255, 255, 0.82);
+  background: rgba(13, 122, 121, 0.16);
+  box-shadow:
+    0 10px 24px rgba(13, 122, 121, 0.2),
+    inset 0 0 0 1px rgba(13, 122, 121, 0.24);
   cursor: pointer;
   outline: none;
+  transition:
+    transform 140ms ease,
+    background 140ms ease,
+    box-shadow 140ms ease,
+    border-color 140ms ease;
 }
 
-.map-region path {
-  fill: rgba(255, 250, 240, 0.92);
-  stroke: rgba(35, 50, 74, 0.18);
-  stroke-width: 3;
-  transition: fill 140ms ease, transform 140ms ease;
+.map-hotspot::after {
+  content: "";
+  position: absolute;
+  inset: 24%;
+  border-radius: inherit;
+  background: rgba(255, 255, 255, 0.66);
+  opacity: 0.92;
 }
 
-.ocean-region path {
-  fill: rgba(96, 170, 219, 0.3);
-  stroke: rgba(18, 92, 125, 0.2);
+.map-hotspot:hover,
+.map-hotspot:focus-visible {
+  background: rgba(246, 181, 68, 0.28);
+  border-color: rgba(255, 255, 255, 0.96);
+  transform: translate(-50%, -50%) scale(1.04);
 }
 
-.map-region text {
-  fill: var(--ink);
-  font-family: "Avenir Next", "Trebuchet MS", sans-serif;
-  font-size: 26px;
-  font-weight: 700;
-  text-anchor: middle;
-  pointer-events: none;
+.map-hotspot.correct {
+  background: rgba(128, 181, 70, 0.42);
+  box-shadow:
+    0 14px 26px rgba(128, 181, 70, 0.26),
+    inset 0 0 0 1px rgba(128, 181, 70, 0.34);
 }
 
-.map-region:hover path,
-.map-region:focus path {
-  fill: rgba(246, 181, 68, 0.36);
+.map-hotspot.wrong {
+  background: rgba(211, 85, 117, 0.36);
+  box-shadow:
+    0 14px 26px rgba(211, 85, 117, 0.24),
+    inset 0 0 0 1px rgba(211, 85, 117, 0.34);
 }
 
-.map-region.correct path {
-  fill: rgba(128, 181, 70, 0.45);
+.map-hotspot-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
-.map-region.wrong path {
-  fill: rgba(211, 85, 117, 0.36);
+.map-legend {
+  border-radius: 20px;
+  padding: 16px 18px;
+  background: rgba(255, 255, 255, 0.84);
+  border: 1px solid rgba(13, 122, 121, 0.12);
+}
+
+.map-legend h4 {
+  margin: 0 0 6px;
+  font-size: 1rem;
+}
+
+.map-legend p {
+  margin: 0;
+  color: rgba(35, 50, 74, 0.82);
 }
 
 .practice-list {
@@ -798,7 +869,11 @@ h1 {
     min-height: 104px;
   }
 
-  .map-region text {
-    font-size: 21px;
+  .world-map-wrap {
+    padding: 16px;
+  }
+
+  .map-hotspot {
+    border-width: 1.5px;
   }
 }
