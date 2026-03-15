@@ -170,6 +170,15 @@
             <span id="progress-label">0 / 0</span>
           </div>
         </header>
+        <button
+          id="mobile-sidebar-toggle"
+          class="ghost-btn mobile-sidebar-toggle"
+          type="button"
+          aria-controls="play-sidebar"
+          aria-expanded="false"
+        >
+          Merkhilfe &amp; Fortschritt einblenden
+        </button>
 
         <main class="play-grid">
           <section class="panel game-stage">
@@ -243,6 +252,14 @@
                 <h3 id="map-question"></h3>
                 <p id="map-subtext"></p>
               </div>
+              <div id="map-variant-toggle" class="map-variant-toggle" aria-label="Kartenmodus">
+                <button class="map-variant-btn active" data-map-variant="states" type="button">
+                  Bundesländer finden
+                </button>
+                <button class="map-variant-btn" data-map-variant="capitals" type="button">
+                  Hauptstädte zuordnen
+                </button>
+              </div>
               <div class="world-map-wrap">
                 <div id="map-frame" class="map-frame" data-map="states">
                   <img id="map-base-image" class="map-base-image" alt="" />
@@ -260,7 +277,7 @@
             </section>
           </section>
 
-          <aside class="play-sidebar">
+          <aside id="play-sidebar" class="play-sidebar">
             <div class="panel sidebar-card">
               <h3>Heute wichtig</h3>
               <p id="mission-text"></p>

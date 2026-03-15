@@ -231,6 +231,17 @@ const MODE_INFO = {
   },
 };
 
+const MAP_VARIANT_INFO = {
+  states: {
+    shortTitle: "Bundesländer",
+    fullTitle: "Kartenreise · Bundesländer",
+  },
+  capitals: {
+    shortTitle: "Hauptstädte",
+    fullTitle: "Kartenreise · Hauptstädte",
+  },
+};
+
 const TOPIC_LABELS = {
   states: "Bundesländer",
   neighbors: "Nachbarländer",
@@ -277,6 +288,8 @@ const appState = {
   screen: "menu",
   topic: "states",
   mode: "cards",
+  mapVariant: "states",
+  mobileSidebarOpen: false,
   progressGoal: 8,
   sessionAnswered: 0,
   currentCard: null,
@@ -300,6 +313,7 @@ const appState = {
 const elements = {
   menuScreen: document.querySelector("#menu-screen"),
   playScreen: document.querySelector("#play-screen"),
+  mobileSidebarToggle: document.querySelector("#mobile-sidebar-toggle"),
   startGameBtn: document.querySelector("#start-game-btn"),
   backToMenuBtn: document.querySelector("#back-to-menu-btn"),
   soundToggleBtn: document.querySelector("#sound-toggle-btn"),
@@ -326,6 +340,7 @@ const elements = {
   memoryHeadline: document.querySelector("#memory-headline"),
   progressFill: document.querySelector("#progress-fill"),
   progressLabel: document.querySelector("#progress-label"),
+  playSidebar: document.querySelector("#play-sidebar"),
   topicButtons: [...document.querySelectorAll("#topic-toggle [data-topic]")],
   modeButtons: [...document.querySelectorAll("#mode-toggle [data-mode]")],
   modeViews: [...document.querySelectorAll(".mode-view")],
@@ -359,6 +374,8 @@ const elements = {
   mapHotspots: document.querySelector("#map-hotspots"),
   mapLegendTitle: document.querySelector("#map-legend-title"),
   mapLegendText: document.querySelector("#map-legend-text"),
+  mapVariantToggle: document.querySelector("#map-variant-toggle"),
+  mapVariantButtons: [...document.querySelectorAll("[data-map-variant]")],
   mapQuestion: document.querySelector("#map-question"),
   mapSubtext: document.querySelector("#map-subtext"),
   mapFeedback: document.querySelector("#map-feedback"),
@@ -537,7 +554,9 @@ function refreshProgressGoal() {
 
 function currentModeDescription() {
   if (appState.topic === "states" && appState.mode === "map") {
-    return "Auf der Deutschlandkarte tauchen Namen und Hauptstädte gemischt auf. So wächst das räumliche Verständnis gleich mit.";
+    return appState.mapVariant === "capitals"
+      ? "Hier wird jede Hauptstadt gezielt ihrem Bundesland zugeordnet. Das ist klarer und stärkt die Verknüpfung noch besser."
+      : "Hier wird nur die Lage der Bundesländer geübt. So bleibt der Kartenmodus ruhig und übersichtlich.";
   }
   if (appState.topic === "continents" && appState.mode === "cards") {
     return "Lernt Kontinente und Ozeane mit kurzen Merksätzen und sprecht die Antworten laut mit.";
@@ -551,11 +570,24 @@ function currentModeDescription() {
   return MODE_INFO[appState.mode].description;
 }
 
+function currentModeTitle() {
+  if (appState.mode === "map" && appState.topic === "states") {
+    return MAP_VARIANT_INFO[appState.mapVariant].fullTitle;
+  }
+  return MODE_INFO[appState.mode].title;
+}
+
 function updateSelectionPreview() {
   elements.selectedTopicLabel.textContent = TOPIC_LABELS[appState.topic];
-  elements.selectedModeLabel.textContent = MODE_INFO[appState.mode].title;
+  elements.selectedModeLabel.textContent =
+    appState.mode === "map" && appState.topic === "states"
+      ? MAP_VARIANT_INFO[appState.mapVariant].fullTitle
+      : MODE_INFO[appState.mode].title;
   elements.playTopicPill.textContent = TOPIC_LABELS[appState.topic];
-  elements.playModePill.textContent = MODE_INFO[appState.mode].title;
+  elements.playModePill.textContent =
+    appState.mode === "map" && appState.topic === "states"
+      ? MAP_VARIANT_INFO[appState.mapVariant].shortTitle
+      : MODE_INFO[appState.mode].title;
 }
 
 function updateSoundButtons() {
@@ -568,6 +600,9 @@ function showScreen(screen) {
   appState.screen = screen;
   elements.menuScreen.classList.toggle("active", screen === "menu");
   elements.playScreen.classList.toggle("active", screen === "play");
+  if (screen !== "play") {
+    setMobileSidebarOpen(false);
+  }
 }
 
 function setSecretPanel(open) {
@@ -658,6 +693,30 @@ function mapModeAvailable(topic = appState.topic) {
 
 function getMapRegions() {
   return [...elements.mapHotspots.querySelectorAll(".map-hotspot")];
+}
+
+function stateMapLegendText() {
+  return appState.mapVariant === "capitals"
+    ? "Hier sucht ihr immer das Bundesland zu einer Hauptstadt. So wird die Hauptstadt gezielt mit der Lage verknüpft."
+    : "Hier sucht ihr nur die Namen der Bundesländer auf der Karte. Das ist der ruhige Kartenmodus zum Lage-Lernen.";
+}
+
+function refreshMapVariantUI() {
+  const showVariants = appState.mode === "map" && appState.topic === "states";
+  elements.mapVariantToggle.classList.toggle("visible", showVariants);
+  elements.mapVariantToggle.setAttribute("aria-hidden", String(!showVariants));
+  elements.mapVariantButtons.forEach((button) => {
+    button.classList.toggle("active", button.dataset.mapVariant === appState.mapVariant);
+  });
+}
+
+function setMobileSidebarOpen(open) {
+  appState.mobileSidebarOpen = open;
+  elements.playSidebar.classList.toggle("open", open);
+  elements.mobileSidebarToggle.setAttribute("aria-expanded", String(open));
+  elements.mobileSidebarToggle.textContent = open
+    ? "Merkhilfe & Fortschritt ausblenden"
+    : "Merkhilfe & Fortschritt einblenden";
 }
 
 function getItemStats(id) {
@@ -868,8 +927,9 @@ function setMode(mode) {
     button.classList.toggle("active", button.dataset.mode === mode)
   );
   elements.modeViews.forEach((view) => view.classList.toggle("active", view.id === `${mode}-view`));
-  elements.modeTitle.textContent = MODE_INFO[mode].title;
+  elements.modeTitle.textContent = currentModeTitle();
   elements.modeDescription.textContent = currentModeDescription();
+  refreshMapVariantUI();
   updateSelectionPreview();
   updateDashboard();
 
@@ -892,7 +952,9 @@ function setTopic(topic) {
     return;
   }
   refreshProgressGoal();
+  elements.modeTitle.textContent = currentModeTitle();
   elements.modeDescription.textContent = currentModeDescription();
+  refreshMapVariantUI();
   updateSelectionPreview();
   updateDashboard();
 
@@ -901,6 +963,26 @@ function setTopic(topic) {
   if (appState.mode === "write") renderWriteQuestion();
   if (appState.mode === "memory") renderMemoryBoard();
   if (appState.mode === "map") renderMapTask(true);
+}
+
+function setMapVariant(variant) {
+  if (!MAP_VARIANT_INFO[variant] || appState.mapVariant === variant) {
+    refreshMapVariantUI();
+    return;
+  }
+
+  appState.mapVariant = variant;
+  appState.mapQueue = [];
+  appState.mapIndex = 0;
+  appState.currentMapTarget = null;
+  elements.modeTitle.textContent = currentModeTitle();
+  elements.modeDescription.textContent = currentModeDescription();
+  refreshMapVariantUI();
+  updateSelectionPreview();
+
+  if (appState.mode === "map" && appState.topic === "states") {
+    renderMapTask(true);
+  }
 }
 
 function renderCard() {
@@ -1122,7 +1204,8 @@ function renderMapSurface() {
 
   elements.mapBadge.textContent = config.badge;
   elements.mapLegendTitle.textContent = config.legendTitle;
-  elements.mapLegendText.textContent = config.legendText;
+  elements.mapLegendText.textContent =
+    appState.topic === "states" ? stateMapLegendText() : config.legendText;
   elements.mapFrame.dataset.map = appState.topic;
   elements.mapBaseImage.src = config.image;
   elements.mapBaseImage.alt = config.alt;
@@ -1148,16 +1231,32 @@ function buildMapQueue() {
     .slice(0, appState.progressGoal)
     .map((item) => {
       if (appState.topic === "states") {
-        const askForCapital = Math.random() < 0.5;
+        const askForCapital = appState.mapVariant === "capitals";
         return {
           item,
           mapId: item.id,
-          label: pretty(item.name),
+          label: askForCapital
+            ? `das Bundesland mit der Hauptstadt ${pretty(item.capital)}`
+            : pretty(item.name),
           prompt: askForCapital
             ? `Klicke auf das Bundesland mit der Hauptstadt ${pretty(item.capital)}.`
             : `Klicke auf ${pretty(item.name)}.`,
-          subtext: "Suche auf der Deutschlandkarte das passende Bundesland.",
+          subtext: askForCapital
+            ? "Ordne die Hauptstadt auf der Deutschlandkarte dem richtigen Bundesland zu."
+            : "Suche auf der Deutschlandkarte das passende Bundesland.",
           feedback: `${pretty(item.capital)} ist die Hauptstadt von ${pretty(item.name)}.`,
+          completionText:
+            appState.mapVariant === "capitals"
+              ? "Super. Ihr habt die Hauptstädte dieser Runde sicher zugeordnet."
+              : "Super. Ihr habt die Bundesländer dieser Kartenrunde sicher gefunden.",
+          finishSubtext:
+            appState.mapVariant === "capitals"
+              ? "Ihr habt alle Hauptstädte dieser Runde richtig zugeordnet."
+              : "Ihr habt alle Bundesländer dieser Runde gefunden.",
+          celebrateText:
+            appState.mapVariant === "capitals"
+              ? "Super. Die Hauptstädte und ihre Bundesländer sitzen schon richtig gut."
+              : "Super. Die Lage der Bundesländer sitzt schon richtig gut.",
         };
       }
 
@@ -1171,11 +1270,19 @@ function buildMapQueue() {
             ? "Suche das richtige Weltmeer auf der Karte."
             : "Suche den richtigen Kontinent auf der Karte.",
         feedback: pretty(item.detail),
+        completionText: "Super. Ihr habt alle Aufgaben dieser Kartenrunde gelöst.",
+        finishSubtext: "Ihr habt alle Kontinente und Ozeane dieser Runde gefunden.",
+        celebrateText: pretty(
+          item.group === "oceans"
+            ? "Auch die Weltmeere sitzen schon gut."
+            : "Die Kontinente sitzen schon gut."
+        ),
       };
     });
 }
 
 function startGame() {
+  setMobileSidebarOpen(false);
   showScreen("play");
   if (appState.mode === "cards") renderCard();
   if (appState.mode === "quiz") renderQuizQuestion();
@@ -1207,10 +1314,7 @@ function renderMapTask(resetQueue = false) {
     elements.mapQuestion.textContent =
       appState.topic === "states" ? "Deutschlandrunde geschafft." : "Weltreise geschafft.";
     elements.mapSubtext.textContent = "Startet gern gleich die nächste Runde.";
-    elements.mapFeedback.textContent =
-      appState.topic === "states"
-        ? "Super. Ihr habt die Bundesländer dieser Kartenrunde sicher gefunden."
-        : "Super. Ihr habt alle Aufgaben dieser Kartenrunde gelöst.";
+    elements.mapFeedback.textContent = "Super. Ihr habt alle Aufgaben dieser Kartenrunde gelöst.";
     elements.nextMapBtn.disabled = false;
     elements.nextMapBtn.textContent = "Neue Runde";
     return;
@@ -1240,15 +1344,9 @@ function handleMapChoice(region) {
       appState.currentMapTarget = null;
       elements.mapQuestion.textContent =
         appState.topic === "states" ? "Deutschlandrunde geschafft." : "Weltreise geschafft.";
-      elements.mapSubtext.textContent =
-        appState.topic === "states"
-          ? "Ihr habt alle Bundesländer dieser Runde gefunden."
-          : "Ihr habt alle Kontinente und Ozeane dieser Runde gefunden.";
+      elements.mapSubtext.textContent = appState.currentMapTarget?.finishSubtext || target.finishSubtext;
       playSound("celebrate");
-      elements.mapFeedback.textContent =
-        appState.topic === "states"
-          ? "Super. Name, Lage und Hauptstadt greifen schon richtig gut zusammen."
-          : `Super. ${pretty(region.dataset.id.includes("ocean") ? "Auch die Weltmeere sitzen schon gut." : "Die Kontinente sitzen schon gut.")}`;
+      elements.mapFeedback.textContent = target.celebrateText;
       elements.nextMapBtn.textContent = "Neue Runde";
     }
     elements.nextMapBtn.disabled = false;
@@ -1293,10 +1391,16 @@ function attachEvents() {
   elements.resetMemoryBtn.addEventListener("click", renderMemoryBoard);
   elements.startGameBtn.addEventListener("click", startGame);
   elements.backToMenuBtn.addEventListener("click", () => showScreen("menu"));
+  elements.mobileSidebarToggle.addEventListener("click", () => {
+    setMobileSidebarOpen(!appState.mobileSidebarOpen);
+  });
   elements.soundToggleBtn.addEventListener("click", toggleSound);
   elements.soundToggleBtnPlay.addEventListener("click", toggleSound);
   elements.secretTrigger.addEventListener("click", revealSecretPanel);
   elements.resetProgressBtn.addEventListener("click", resetProgress);
+  elements.mapVariantButtons.forEach((button) => {
+    button.addEventListener("click", () => setMapVariant(button.dataset.mapVariant));
+  });
   elements.nextMapBtn.addEventListener("click", () => renderMapTask(appState.currentMapTarget === null));
   elements.mapHotspots.addEventListener("click", (event) => {
     const region = event.target.closest(".map-hotspot");
@@ -1322,6 +1426,8 @@ function init() {
   updateSoundButtons();
   seedUnlockedBadges();
   preventZoomGestures();
+  refreshMapVariantUI();
+  setMobileSidebarOpen(false);
   updateDashboard();
   setSecretPanel(false);
   setMode("cards");
