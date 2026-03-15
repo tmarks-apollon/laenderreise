@@ -1039,16 +1039,55 @@ function promptForUpdate(registration) {
   setUpdateBanner(true);
 }
 
+function getWorkerVersion(worker) {
+  return new Promise((resolve) => {
+    if (!worker) {
+      resolve(null);
+      return;
+    }
+
+    const channel = new MessageChannel();
+    channel.port1.onmessage = (event) => {
+      resolve(event.data?.version || null);
+    };
+
+    worker.postMessage({ type: "GET_VERSION" }, [channel.port2]);
+  });
+}
+
+async function maybePromptForUpdate(registration) {
+  if (!registration?.waiting) {
+    setUpdateBanner(false);
+    return;
+  }
+
+  const [waitingVersion, activeVersion] = await Promise.all([
+    getWorkerVersion(registration.waiting),
+    getWorkerVersion(registration.active),
+  ]);
+
+  if (waitingVersion && waitingVersion !== activeVersion) {
+    promptForUpdate(registration);
+    return;
+  }
+
+  setUpdateBanner(false);
+}
+
 function watchInstallingWorker(worker, registration) {
-  worker.addEventListener("statechange", () => {
+  worker.addEventListener("statechange", async () => {
     if (worker.state === "installed" && navigator.serviceWorker.controller) {
-      promptForUpdate(registration);
+      await maybePromptForUpdate(registration);
     }
   });
 }
 
 function activateUpdate() {
-  if (!swRegistration || !swRegistration.waiting) return;
+  if (!swRegistration || !swRegistration.waiting) {
+    setUpdateBanner(false);
+    return;
+  }
+  setUpdateBanner(false);
   swRegistration.waiting.postMessage({ type: "SKIP_WAITING" });
 }
 
@@ -1208,12 +1247,10 @@ if ("serviceWorker" in navigator) {
 
     navigator.serviceWorker
       .register("./sw.js")
-      .then((registration) => {
+      .then(async (registration) => {
         swRegistration = registration;
 
-        if (registration.waiting) {
-          promptForUpdate(registration);
-        }
+        await maybePromptForUpdate(registration);
 
         registration.addEventListener("updatefound", () => {
           if (registration.installing) {
